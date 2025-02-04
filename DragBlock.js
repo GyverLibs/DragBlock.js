@@ -9,16 +9,15 @@ export default class DragBlock {
             }, { passive: false });
 
             document.addEventListener("touchmove", (e) => {
+                e.preventDefault();
                 switch (this.drag) {
                     case 1: {
-                        e.preventDefault();
                         let xy = getxy(e, 0);
                         if (this.prev1) call('drag', xy[0] - this.prev1[0], xy[1] - this.prev1[1]);
                         this.prev1 = getxy(e, 0);
                     } break;
 
                     case 2: {
-                        e.preventDefault();
                         let xy0 = getxy(e, 0);
                         let xy1 = getxy(e, 1);
                         let px = (xy0[0] + xy1[0]) / 2;
