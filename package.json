@@ -1,0 +1,16 @@
+{
+  "name": "@alexgyver/drag-block",
+  "version": "1.0.0",
+  "description": "Click, drag and pitch events for element",
+  "main": "./DragBlock.js",
+  "module": "./DragBlock.js",
+  "types": "./DragBlock.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GyverLibs/DragBlock.js.git"
+  },
+  "author": "AlexGyver <alex@alexgyver.ru>",
+  "license": "MIT",
+  "dependencies": {
+  }
+}

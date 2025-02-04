@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+</head>
+
+<body>
+    <svg id="svg" width="350" height="350">
+        <circle id="cir" cx="150" cy="150" r="50" fill="red"></circle>
+    </svg>
+
+    <script type="module">
+        import DragBlock from './DragBlock.js'
+        document.addEventListener("DOMContentLoaded", () => {
+            new DragBlock(document.getElementById('svg'), e => {
+                console.log(e);
+                let cir = document.getElementById('cir');
+                cir.setAttribute('cx', Number(cir.getAttribute('cx')) + e.x);
+                cir.setAttribute('cy', Number(cir.getAttribute('cy')) + e.y);
+                cir.setAttribute('r', Number(cir.getAttribute('r')) + e.zoom / 2);
+            });
+        });
+    </script>
+</body>
+
+</html>
