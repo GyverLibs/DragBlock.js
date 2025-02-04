@@ -1,6 +1,6 @@
 export default class DragBlock {
     constructor(block, cb) {
-        const call = (t, x = 0, y = 0, z = 0) => cb({ type: t, x: x, y: y, zoom: z });
+        const call = (t, x = 0, y = 0, z = 0) => cb({ type: t, dx: x, dy: y, dz: z });
         const getxy = (e, i) => [e.touches[i].pageX, e.touches[i].pageY];
 
         if ("ontouchstart" in document.documentElement) {
