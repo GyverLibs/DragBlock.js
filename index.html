@@ -7,15 +7,16 @@
 </head>
 
 <body>
-    <svg id="svg" width="350" height="350">
+    <svg id="svg" width="350" height="300">
         <circle id="cir" cx="150" cy="150" r="50" fill="red"></circle>
     </svg>
-    <svg id="svg2" width="350" height="350">
+    <svg id="svg2" width="350" height="300">
         <circle id="cir2" cx="150" cy="150" r="50" fill="red"></circle>
     </svg>
 
     <script type="module">
         import DragBlock from './DragBlock.js'
+
         document.addEventListener("DOMContentLoaded", () => {
             new DragBlock(document.getElementById('svg'), e => {
                 console.log(e);
@@ -32,6 +33,7 @@
                 cir.setAttribute('r', Number(cir.getAttribute('r')) + e.dz / 2);
             });
         });
+
     </script>
 </body>
 
