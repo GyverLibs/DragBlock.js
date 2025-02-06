@@ -7,30 +7,53 @@
 </head>
 
 <body>
-    <svg id="svg" width="350" height="300">
-        <circle id="cir" cx="150" cy="150" r="50" fill="red"></circle>
-    </svg>
-    <svg id="svg2" width="350" height="300">
-        <circle id="cir2" cx="150" cy="150" r="50" fill="red"></circle>
-    </svg>
+    <div id="div" style="width:300px;height:300px;">
+        <svg id="svg" width="100%" height="100%" style="background:#aaa">
+            <circle id="big" cx="150" cy="150" r="50" fill="red"></circle>
+            <circle id="small" cx="150" cy="150" r="5" fill="green"></circle>
+        </svg>
+    </div>
 
     <script type="module">
         import DragBlock from './DragBlock.js'
 
         document.addEventListener("DOMContentLoaded", () => {
-            new DragBlock(document.getElementById('svg'), e => {
-                console.log(e);
-                let cir = document.getElementById('cir');
-                cir.setAttribute('cx', Number(cir.getAttribute('cx')) + e.dx);
-                cir.setAttribute('cy', Number(cir.getAttribute('cy')) + e.dy);
-                cir.setAttribute('r', Number(cir.getAttribute('r')) + e.dz / 2);
-            });
-            new DragBlock(document.getElementById('svg2'), e => {
-                console.log(e);
-                let cir = document.getElementById('cir2');
-                cir.setAttribute('cx', Number(cir.getAttribute('cx')) + e.dx);
-                cir.setAttribute('cy', Number(cir.getAttribute('cy')) + e.dy);
-                cir.setAttribute('r', Number(cir.getAttribute('r')) + e.dz / 2);
+            DragBlock(document.getElementById('div'), e => {
+                console.log(JSON.stringify(e));
+
+                const set = (el, attr, val) => el.setAttributeNS(null, attr, val);
+                const get = (el, attr) => el.getAttribute(attr);
+
+                let big = document.getElementById('big');
+                let small = document.getElementById('small');
+                switch (e.type) {
+                    case 'move':
+                        break;
+                    case 'press':
+                        set(big, 'fill', 'yellow');
+                        break;
+                    case 'drag':
+                        //set(big, 'cx', e.pos.x);
+                        //set(big, 'cy', e.pos.y);
+                        set(big, 'cx', Number(get(big, 'cx')) + e.move.x);
+                        set(big, 'cy', Number(get(big, 'cy')) + e.move.y);
+                        //set(big, 'cx', 150 + e.drag.x);
+                        //set(big, 'cy', 150 + e.drag.y);
+                        break;
+                    case 'release':
+                        set(big, 'fill', 'red');
+                        break;
+                    case 'click':
+                        set(big, 'r', Math.random() * 50 + 10);
+                        break;
+                    case 'zoom':
+                        set(big, 'r', Number(get(big, 'r')) + e.zoom / 2);
+                        break;
+                }
+
+                set(small, 'cx', e.pos.x);
+                set(small, 'cy', e.pos.y);
+                set(small, 'fill', e.pressed ? 'blue' : 'green');
             });
         });
 
