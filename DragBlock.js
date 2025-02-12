@@ -1,5 +1,5 @@
-export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
-    const touch = "ontouchstart" in document.documentElement;
+export default function DragBlock(block, cb, ctx = window, clickTout = 300, clickZone = 5) {
+    const touch = "ontouchstart" in ctx.document.documentElement;
     let pressf = 0;
     let tchs = [];
     let tout = null;
@@ -13,16 +13,7 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
         cb({ type: t, touch: touch, move: xy0(), pos: xy0(), drag: dxy, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
     }
     let XY = (x, y) => {
-        if (block.offsetParent) {
-            if (block.offsetParent.tagName.toUpperCase() === "BODY") {
-                x -= block.offsetLeft;
-                y -= block.offsetTop;
-            } else {
-                x -= block.offsetParent.offsetLeft;
-                y -= block.offsetParent.offsetTop;
-            }
-        }
-        return { x: Math.round(x), y: Math.round(y) };
+        return { x: Math.round(x - block.getBoundingClientRect().left), y: Math.round(y - block.getBoundingClientRect().top - ctx.document.documentElement.scrollTop) };
     }
     let XYe = (e) => {
         return XY(e.pageX, e.pageY);
@@ -63,10 +54,10 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
             if (hover && e.target != block && !tchs.length) {
                 hover = false;
                 call('leave');
-                document.removeEventListener("touchstart", touchstart);
-                document.removeEventListener("touchmove", touchmove);
-                document.removeEventListener("touchend", touchend);
-                document.removeEventListener("touchcancel ", touchend);
+                ctx.document.removeEventListener("touchstart", touchstart);
+                ctx.document.removeEventListener("touchmove", touchmove);
+                ctx.document.removeEventListener("touchend", touchend);
+                ctx.document.removeEventListener("touchcancel ", touchend);
             }
         }
         let touchmove = (e) => {
@@ -139,10 +130,10 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
                 restartClick();
                 if (!hover) {
                     hover = true;
-                    document.addEventListener("touchstart", touchstart, { passive: false });
-                    document.addEventListener("touchmove", touchmove, { passive: false });
-                    document.addEventListener("touchend", touchend);
-                    document.addEventListener("touchcancel ", touchend);
+                    ctx.document.addEventListener("touchstart", touchstart, { passive: false });
+                    ctx.document.addEventListener("touchmove", touchmove, { passive: false });
+                    ctx.document.addEventListener("touchend", touchend);
+                    ctx.document.addEventListener("touchcancel ", touchend);
                     call('enter');
                 }
             }
@@ -154,6 +145,14 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
 
         //#region mouse
     } else {
+        let remove = () => {
+            ctx.document.removeEventListener("mousemove", mousemove);
+            ctx.document.removeEventListener("mouseup", mouseup);
+        }
+        let add = () => {
+            ctx.document.addEventListener("mousemove", mousemove);
+            ctx.document.addEventListener("mouseup", mouseup);
+        }
         let mousemove = (e) => {
             if (pressf) {
                 e.preventDefault();
@@ -171,21 +170,17 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
                 if (e.target !== block) remove();
             }
         }
-        let remove = () => {
-            document.removeEventListener("mousemove", mousemove);
-            document.removeEventListener("mouseup", mouseup);
-        }
-        block.addEventListener("mouseenter", () => {
-            call('enter');
-            document.addEventListener("mousemove", mousemove);
-            document.addEventListener("mouseup", mouseup);
+        block.addEventListener("mouseenter", (e) => {
+            call('enter', { pos: XYe(e) });
+            add();
         });
-        block.addEventListener("mouseleave", () => {
-            call('leave');
+        block.addEventListener("mouseleave", (e) => {
+            call('leave', { pos: XYe(e) });
             if (!pressf) remove();
         });
         block.addEventListener("mousedown", (e) => {
             if (!pressf) {
+                add();
                 e.preventDefault();
                 pressf = 1;
                 restartClick();
@@ -198,6 +193,6 @@ export default function DragBlock(block, cb, clickTout = 300, clickZone = 5) {
         block.addEventListener("wheel", (e) => {
             e.preventDefault();
             call('zoom', { zoom: -e.deltaY / 100, pos: XYe(e) });
-        });
+        }, { passive: false });
     }
 }
