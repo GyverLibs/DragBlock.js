@@ -1,3 +1,5 @@
+// type: enter, leave, zoom, drag, click, pres, release, tpress, trelease
+// type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed
 export default function DragBlock(block, cb, ctx = window, clickTout = 300, clickZone = 5) {
     const touch = "ontouchstart" in ctx.document.documentElement;
     let pressf = 0;
@@ -112,7 +114,10 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 if (~i) {
                     e.preventDefault();
                     tchs.splice(i, 1);
-                    if (tchs.length == 0 && checkClick()) call('click', { pos: XY(t.x, t.y) });
+                    if (!tchs.length) {
+                        call('trelease', { pos: XY(t.x, t.y) });
+                        if (checkClick()) call('click', { pos: XY(t.x, t.y) });
+                    }
                     if (tchs.length == 1) call('release', { pos: XY(t.x, t.y) });
                 }
             }
@@ -134,8 +139,9 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                     ctx.document.addEventListener("touchmove", touchmove, { passive: false });
                     ctx.document.addEventListener("touchend", touchend);
                     ctx.document.addEventListener("touchcancel ", touchend);
-                    call('enter');
+                    call('enter', { pos: XY(t.x, t.y) });
                 }
+                call('tpress', { pos: XY(t.x, t.y) });
             }
             if (tchs.length == 2) {
                 call('press', { pos: XY(t.x, t.y) });
