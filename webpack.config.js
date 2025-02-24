@@ -1,10 +1,8 @@
-var path = require('path');
-
 module.exports = {
     entry: './DragBlock.js',
     output: {
-        path: path.resolve(__dirname, 'dist'),
-        filename: 'DragBlock.js',
+        path: __dirname,
+        filename: 'DragBlock.min.js',
         library: {
             type: 'module'
         }
