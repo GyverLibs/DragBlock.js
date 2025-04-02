@@ -8,6 +8,8 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
     let dxy = { x: 0, y: 0 };
     let hover = false;
 
+    let addE = (...args) => ctx.document.addEventListener(...args);
+    let remE = (...args) => ctx.document.removeEventListener(...args);
     let xy0 = () => {
         return { x: 0, y: 0 }
     }
@@ -56,10 +58,10 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
             if (hover && e.target != block && !tchs.length) {
                 hover = false;
                 call('leave');
-                ctx.document.removeEventListener("touchstart", touchstart);
-                ctx.document.removeEventListener("touchmove", touchmove);
-                ctx.document.removeEventListener("touchend", touchend);
-                ctx.document.removeEventListener("touchcancel ", touchend);
+                remE("touchstart", touchstart);
+                remE("touchmove", touchmove);
+                remE("touchend", touchend);
+                remE("touchcancel ", touchend);
             }
         }
         let touchmove = (e) => {
@@ -135,10 +137,10 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 restartClick();
                 if (!hover) {
                     hover = true;
-                    ctx.document.addEventListener("touchstart", touchstart, { passive: false });
-                    ctx.document.addEventListener("touchmove", touchmove, { passive: false });
-                    ctx.document.addEventListener("touchend", touchend);
-                    ctx.document.addEventListener("touchcancel ", touchend);
+                    addE("touchstart", touchstart, { passive: false });
+                    addE("touchmove", touchmove, { passive: false });
+                    addE("touchend", touchend);
+                    addE("touchcancel ", touchend);
                     call('enter', { pos: XY(t.x, t.y) });
                 }
                 call('tpress', { pos: XY(t.x, t.y) });
@@ -152,12 +154,12 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
         //#region mouse
     } else {
         let remove = () => {
-            ctx.document.removeEventListener("mousemove", mousemove);
-            ctx.document.removeEventListener("mouseup", mouseup);
+            remE("mousemove", mousemove);
+            remE("mouseup", mouseup);
         }
         let add = () => {
-            ctx.document.addEventListener("mousemove", mousemove);
-            ctx.document.addEventListener("mouseup", mouseup);
+            addE("mousemove", mousemove);
+            addE("mouseup", mouseup);
         }
         let mousemove = (e) => {
             if (pressf) {
