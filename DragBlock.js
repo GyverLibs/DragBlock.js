@@ -1,18 +1,18 @@
-// type: enter, leave, zoom, drag, click, pres, release, tpress, trelease
+// type: enter, leave, zoom, drag, tdrag, click, pres, release, tpress, trelease
 // type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed
 export default function DragBlock(block, cb, ctx = window, clickTout = 300, clickZone = 5) {
+    let addE = (...args) => ctx.document.addEventListener(...args);
+    let remE = (...args) => ctx.document.removeEventListener(...args);
+    let xy0 = () => { return { x: 0, y: 0 } };
+
     const touch = "ontouchstart" in ctx.document.documentElement;
     let pressf = 0;
     let tchs = [];
     let tout = null;
-    let dxy = { x: 0, y: 0 };
+    let dxy = xy0();
+    let tdxy = xy0();
     let hover = false;
 
-    let addE = (...args) => ctx.document.addEventListener(...args);
-    let remE = (...args) => ctx.document.removeEventListener(...args);
-    let xy0 = () => {
-        return { x: 0, y: 0 }
-    }
     let call = (t, o) => {
         cb({ type: t, touch: touch, move: xy0(), pos: xy0(), drag: dxy, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
     }
@@ -24,6 +24,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
     }
     let restartClick = () => {
         dxy = xy0();
+        tdxy = xy0();
         if (tout) clearTimeout(tout);
         tout = setTimeout(() => tout = null, clickTout);
     }
@@ -40,6 +41,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
             f = (Math.abs(dxy.x) < clickZone && Math.abs(dxy.y) < clickZone);
         }
         dxy = xy0();
+        tdxy = xy0();
         return f;
     }
 
@@ -72,7 +74,12 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 let t = findt(e, pt.id);
                 if (!t) return;
                 e.preventDefault();
-                call('move', { move: { x: t.x - pt.x, y: t.y - pt.y }, pos: XY(t.x, t.y) });
+                let dx = t.x - pt.x;
+                let dy = t.y - pt.y;
+                tdxy.x += dx;
+                tdxy.y += dy;
+                call('move', { move: { x: dx, y: dy }, pos: XY(t.x, t.y) });
+                call('tdrag', { drag: tdxy, pos: XY(t.x, t.y) });
                 cancelClick();
             } else {
                 let t = [0, 0], pt = [0, 0], f = 0;
