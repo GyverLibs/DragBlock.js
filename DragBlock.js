@@ -1,5 +1,5 @@
-// type: enter, leave, zoom, drag, tdrag, click, pres, release, tpress, trelease
-// type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed
+// type: [enter, leave, zoom, drag, tdrag, click, pres, release, tpress, trelease]
+// e: {type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height}
 export default function DragBlock(block, cb, ctx = window, clickTout = 300, clickZone = 5) {
     let addE = (...args) => ctx.document.addEventListener(...args);
     let remE = (...args) => ctx.document.removeEventListener(...args);
@@ -14,7 +14,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
     let hover = false;
 
     let call = (t, o) => {
-        cb({ type: t, touch: touch, move: xy0(), pos: xy0(), drag: dxy, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
+        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: dxy, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
     }
     let XY = (x, y) => {
         return { x: Math.round(x - block.getBoundingClientRect().left), y: Math.round(y - block.getBoundingClientRect().top - ctx.document.documentElement.scrollTop) };
@@ -79,7 +79,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 tdxy.x += dx;
                 tdxy.y += dy;
                 call('move', { move: { x: dx, y: dy }, pos: XY(t.x, t.y) });
-                call('tdrag', { drag: tdxy, pos: XY(t.x, t.y) });
+                call('tdrag', { move: { x: dx, y: dy }, drag: tdxy, pos: XY(t.x, t.y) });
                 cancelClick();
             } else {
                 let t = [0, 0], pt = [0, 0], f = 0;
