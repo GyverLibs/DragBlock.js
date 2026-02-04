@@ -14,10 +14,11 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
     let hover = false;
 
     let call = (t, o) => {
-        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: dxy, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
+        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
     }
     let XY = (x, y) => {
-        return { x: Math.round(x - block.getBoundingClientRect().left), y: Math.round(y - block.getBoundingClientRect().top - ctx.document.documentElement.scrollTop) };
+        const r = block.getBoundingClientRect();
+        return { x: Math.round(x - r.left), y: Math.round(y - r.top - ctx.document.documentElement.scrollTop) };
     }
     let XYe = (e) => {
         return XY(e.pageX, e.pageY);
@@ -63,7 +64,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 remE("touchstart", touchstart);
                 remE("touchmove", touchmove);
                 remE("touchend", touchend);
-                remE("touchcancel ", touchend);
+                remE("touchcancel", touchend);
             }
         }
         let touchmove = (e) => {
@@ -83,7 +84,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                 cancelClick();
             } else {
                 let t = [0, 0], pt = [0, 0], f = 0;
-                for (let i in t) {
+                for (let i = 0; i < 2; i++) {
                     pt[i] = tchs[i];
                     t[i] = findt(e, pt[i].id);
                     if (t[i]) f = 1;
@@ -147,7 +148,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                     addE("touchstart", touchstart, { passive: false });
                     addE("touchmove", touchmove, { passive: false });
                     addE("touchend", touchend);
-                    addE("touchcancel ", touchend);
+                    addE("touchcancel", touchend);
                     call('enter', { pos: XY(t.x, t.y) });
                 }
                 call('tpress', { pos: XY(t.x, t.y) });
