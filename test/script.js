@@ -1,0 +1,42 @@
+import DragBlock from 'https://gyverlibs.github.io/DragBlock.js/DragBlock.min.js'
+// import DragBlock from '../DragBlock.js'
+
+document.addEventListener("DOMContentLoaded", () => {
+    DragBlock(document.getElementById('div'), e => {
+        console.log(JSON.stringify(e));
+
+        const set = (el, attr, val) => el.setAttributeNS(null, attr, val);
+        const get = (el, attr) => el.getAttribute(attr);
+
+        let big = document.getElementById('big');
+        let small = document.getElementById('small');
+        switch (e.type) {
+            case 'move':
+                break;
+            case 'press':
+                set(big, 'fill', 'yellow');
+                break;
+            case 'drag':
+                //set(big, 'cx', e.pos.x);
+                //set(big, 'cy', e.pos.y);
+                set(big, 'cx', Number(get(big, 'cx')) + e.move.x);
+                set(big, 'cy', Number(get(big, 'cy')) + e.move.y);
+                //set(big, 'cx', 150 + e.drag.x);
+                //set(big, 'cy', 150 + e.drag.y);
+                break;
+            case 'release':
+                set(big, 'fill', 'red');
+                break;
+            case 'click':
+                set(big, 'r', Math.random() * 50 + 10);
+                break;
+            case 'zoom':
+                set(big, 'r', Number(get(big, 'r')) + e.zoom / 2);
+                break;
+        }
+
+        set(small, 'cx', e.pos.x);
+        set(small, 'cy', e.pos.y);
+        set(small, 'fill', e.pressed ? 'blue' : 'green');
+    });
+});
