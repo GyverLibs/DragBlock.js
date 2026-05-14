@@ -1,24 +1,39 @@
-// type: [enter, leave, zoom, drag, tdrag, click, pres, release, tpress, trelease]
-// e: {type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height}
-export default function DragBlock(block, cb, ctx = window, clickTout = 300, clickZone = 5) {
-    let addE = (...args) => ctx.document.addEventListener(...args);
-    let remE = (...args) => ctx.document.removeEventListener(...args);
-    let xy0 = () => { return { x: 0, y: 0 } };
+// type: [enter, leave, zoom, drag, tdrag, click, press, release, tpress, trelease]
+// e: {type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height, button, menu}
+export default function DragBlock(block, cb, params = {}) {
+    params = {
+        context: window,
+        clickTout: 300,
+        clickZone: 5,
+        menu: false,
+        menuTout: 600,
+        ...params
+    };
 
-    const touch = "ontouchstart" in ctx.document.documentElement;
-    let pressf = 0;
-    let tchs = [];
+    //#region data
+    const touch = "ontouchstart" in params.context.document.documentElement;
+    const passiveFalse = { passive: false };
+    let xy0 = () => ({ x: 0, y: 0 });
+    let destroy = () => { };
     let tout = null;
+    let menuTout = null;
+    let tchs = [];
     let dxy = xy0();
     let tdxy = xy0();
     let hover = false;
+    let pressf = false;
+
+    let on = (target, type, fn, opts) => target.addEventListener(type, fn, opts);
+    let off = (target, type, fn, opts) => target.removeEventListener(type, fn, opts);
+    let onDoc = (type, fn, opts) => on(params.context.document, type, fn, opts);
+    let offDoc = (type, fn, opts) => off(params.context.document, type, fn, opts);
 
     let call = (t, o) => {
-        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), ...o })
+        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), button: null, ...o })
     }
     let XY = (x, y) => {
         const r = block.getBoundingClientRect();
-        return { x: Math.round(x - r.left), y: Math.round(y - r.top - ctx.document.documentElement.scrollTop) };
+        return { x: Math.round(x - r.left), y: Math.round(y - r.top - params.context.document.documentElement.scrollTop) };
     }
     let XYe = (e) => {
         return XY(e.pageX, e.pageY);
@@ -27,7 +42,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
         dxy = xy0();
         tdxy = xy0();
         if (tout) clearTimeout(tout);
-        tout = setTimeout(() => tout = null, clickTout);
+        tout = setTimeout(() => tout = null, params.clickTout);
     }
     let cancelClick = () => {
         if (tout) {
@@ -39,7 +54,7 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
         let f = 0;
         if (tout) {
             cancelClick();
-            f = (Math.abs(dxy.x) < clickZone && Math.abs(dxy.y) < clickZone);
+            f = (Math.abs(dxy.x) < params.clickZone && Math.abs(dxy.y) < params.clickZone);
         }
         dxy = xy0();
         tdxy = xy0();
@@ -48,45 +63,78 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
 
     //#region touch
     if (touch) {
-        let findt = (e, id) => {
-            for (let i in e.changedTouches) if (e.changedTouches[i].identifier == id) return gett(e, i);
+        block.style.userSelect = 'none';
+        block.style.touchAction = 'none';
+        block.style.webkitUserSelect = 'none';
+        block.style.overscrollBehavior = 'none';
+        block.style.webkitTouchCallout = 'none';
+
+        const touchend = 'touchend';
+        const touchmove = 'touchmove';
+        const touchstart = 'touchstart';
+        const touchcancel = 'touchcancel';
+
+        let getTch = (e, n) => {
+            let t = e.changedTouches[n];
+            return { id: t.identifier, x: t.pageX, y: t.pageY };
+        }
+        let findTch = (e, id) => {
+            for (let i in e.changedTouches) if (e.changedTouches[i].identifier == id) return getTch(e, i);
             return null;
         }
 
-        let gett = (e, n) => {
-            let t = e.changedTouches[n];
-            return { id: t.identifier, x: t.pageX, y: t.pageY }
-        }
-        let touchstart = (e) => {
-            if (hover && e.target != block && !tchs.length) {
-                hover = false;
-                call('leave');
-                remE("touchstart", touchstart);
-                remE("touchmove", touchmove);
-                remE("touchend", touchend);
-                remE("touchcancel", touchend);
+        // menu
+        let cancelMenu = () => {
+            if (menuTout) {
+                clearTimeout(menuTout);
+                menuTout = null;
             }
         }
-        let touchmove = (e) => {
+
+        let startMenu = (e, pos) => {
+            if (!params.menu) return;
+
+            cancelMenu();
+
+            menuTout = setTimeout(() => {
+                menuTout = null;
+                cancelClick();
+                call('menu', { e, pos });
+            }, params.menuTout);
+        }
+
+        // doc
+        let touchStartDoc = (e) => {
+            if (hover && e.target != block && !tchs.length) {
+                hover = false;
+                call('leave', { e });
+                remDoc();
+            }
+        }
+        let touchMoveDoc = (e) => {
             if (!tchs.length) return;
 
             if (tchs.length == 1) {
                 let pt = tchs[0];
-                let t = findt(e, pt.id);
+                let t = findTch(e, pt.id);
                 if (!t) return;
                 e.preventDefault();
                 let dx = t.x - pt.x;
                 let dy = t.y - pt.y;
+                if (Math.abs(tdxy.x + dx) > params.clickZone || Math.abs(tdxy.y + dy) > params.clickZone) {
+                    cancelMenu();
+                }
+
                 tdxy.x += dx;
                 tdxy.y += dy;
-                call('move', { move: { x: dx, y: dy }, pos: XY(t.x, t.y) });
-                call('tdrag', { move: { x: dx, y: dy }, drag: tdxy, pos: XY(t.x, t.y) });
+                call('move', { e, move: { x: dx, y: dy }, pos: XY(t.x, t.y) });
+                call('tdrag', { e, move: { x: dx, y: dy }, drag: tdxy, pos: XY(t.x, t.y) });
                 cancelClick();
             } else {
                 let t = [0, 0], pt = [0, 0], f = 0;
                 for (let i = 0; i < 2; i++) {
                     pt[i] = tchs[i];
-                    t[i] = findt(e, pt[i].id);
+                    t[i] = findTch(e, pt[i].id);
                     if (t[i]) f = 1;
                     else t[i] = pt[i];
                 }
@@ -101,41 +149,43 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
                     let dry = py - pty;
                     dxy.x += drx;
                     dxy.y += dry;
-                    call('drag', { move: { x: drx, y: dry }, pos: XY(px, py) });
+                    call('drag', { e, move: { x: drx, y: dry }, pos: XY(px, py) });
 
                     let dx = Math.abs(t[0].x - t[1].x);
                     let dy = Math.abs(t[0].y - t[1].y);
                     let dtx = Math.abs(pt[0].x - pt[1].x);
                     let dty = Math.abs(pt[0].y - pt[1].y);
-                    call('zoom', { zoom: Math.hypot(dx, dy) - Math.hypot(dtx, dty), pos: XY(px, py) });
+                    call('zoom', { e, zoom: Math.hypot(dx, dy) - Math.hypot(dtx, dty), pos: XY(px, py) });
                 }
             }
 
             for (let i in tchs) {
-                let t = findt(e, tchs[i].id);
+                let t = findTch(e, tchs[i].id);
                 if (t) tchs[i] = t;
             }
         }
-        let touchend = (e) => {
+        let touchEndDoc = (e) => {
+            cancelMenu();
             if (tchs.length) {
-                let t = gett(e, 0);
+                let t = getTch(e, 0);
                 if (!t) return;
                 let i = tchs.findIndex(x => t.id == x.id);
                 if (~i) {
                     e.preventDefault();
                     tchs.splice(i, 1);
                     if (!tchs.length) {
-                        call('trelease', { pos: XY(t.x, t.y) });
-                        if (checkClick()) call('click', { pos: XY(t.x, t.y) });
+                        call('trelease', { e, pos: XY(t.x, t.y) });
+                        if (checkClick()) call('click', { e, pos: XY(t.x, t.y) });
                     }
-                    if (tchs.length == 1) call('release', { pos: XY(t.x, t.y) });
+                    if (tchs.length == 1) call('release', { e, pos: XY(t.x, t.y) });
                 }
             }
         }
 
-        block.addEventListener("touchstart", (e) => {
+        // block
+        let touchStartBlock = (e) => {
             e.preventDefault();
-            let t = gett(e, 0);
+            let t = getTch(e, 0);
             if (!t) return;
 
             let i = tchs.findIndex(x => t.id == x.id);
@@ -143,72 +193,142 @@ export default function DragBlock(block, cb, ctx = window, clickTout = 300, clic
             tchs.unshift(t);
             if (tchs.length == 1) {
                 restartClick();
+                startMenu(e, XY(t.x, t.y));
                 if (!hover) {
                     hover = true;
-                    addE("touchstart", touchstart, { passive: false });
-                    addE("touchmove", touchmove, { passive: false });
-                    addE("touchend", touchend);
-                    addE("touchcancel", touchend);
-                    call('enter', { pos: XY(t.x, t.y) });
+                    addDoc();
+                    call('enter', { e, pos: XY(t.x, t.y) });
                 }
-                call('tpress', { pos: XY(t.x, t.y) });
+                call('tpress', { e, pos: XY(t.x, t.y) });
             }
             if (tchs.length == 2) {
-                call('press', { pos: XY(t.x, t.y) });
+                cancelMenu();
+                call('press', { e, pos: XY(t.x, t.y) });
                 cancelClick();
             };
-        }, { passive: false });
+        }
+        on(block, touchstart, touchStartBlock, passiveFalse);
+
+        //#region touch events
+        let added = false;
+        let addDoc = () => {
+            if (added) return;
+            added = true;
+            onDoc(touchstart, touchStartDoc, passiveFalse);
+            onDoc(touchmove, touchMoveDoc, passiveFalse);
+            onDoc(touchend, touchEndDoc);
+            onDoc(touchcancel, touchEndDoc);
+        }
+        let remDoc = () => {
+            if (!added) return;
+            added = false;
+            offDoc(touchstart, touchStartDoc, passiveFalse);
+            offDoc(touchmove, touchMoveDoc, passiveFalse);
+            offDoc(touchend, touchEndDoc);
+            offDoc(touchcancel, touchEndDoc);
+        }
+        destroy = () => {
+            tchs = [];
+            cancelClick();
+            cancelMenu();
+            remDoc();
+            off(block, touchstart, touchStartBlock, passiveFalse);
+        }
 
         //#region mouse
     } else {
-        let remove = () => {
-            remE("mousemove", mousemove);
-            remE("mouseup", mouseup);
-        }
-        let add = () => {
-            addE("mousemove", mousemove);
-            addE("mouseup", mouseup);
-        }
-        let mousemove = (e) => {
+        const wheel = 'wheel';
+        const mouseup = 'mouseup';
+        const mousemove = 'mousemove';
+        const mousedown = 'mousedown';
+        const mouseenter = 'mouseenter';
+        const mouseleave = 'mouseleave';
+        const contextmenu = 'contextmenu';
+
+        let button = null;
+
+        // doc
+        let mouseMoveDoc = (e) => {
             if (pressf) {
                 e.preventDefault();
                 dxy.x += e.movementX;
                 dxy.y += e.movementY;
-                call('drag', { move: { x: e.movementX, y: e.movementY }, pos: XYe(e) });
+                call('drag', { e, move: { x: e.movementX, y: e.movementY }, pos: XYe(e), button });
             }
         }
-        let mouseup = (e) => {
+        let mouseUpDoc = (e) => {
             if (pressf) {
                 e.preventDefault();
-                pressf = 0;
-                call('release', { pos: XYe(e) });
-                if (checkClick()) call('click', { pos: XYe(e) });
-                if (e.target !== block) remove();
+                pressf = false;
+                call('release', { e, pos: XYe(e) });
+                if (checkClick()) call('click', { e, pos: XYe(e), button: e.button });
+                if (e.target !== block) remDoc();
+            }
+            button = null;
+        }
+
+        // block
+        let onContextMenu = e => {
+            e.preventDefault();
+            call('menu', { e, pos: XYe(e) });
+        }
+        let mouseEnterBlock = (e) => {
+            call('enter', { e, pos: XYe(e) });
+            addDoc();
+        }
+        let mouseLeaveBlock = (e) => {
+            call('leave', { e, pos: XYe(e) });
+            if (!pressf) remDoc();
+        }
+        let mouseDownBlock = (e) => {
+            button = e.button;
+            if (!pressf) {
+                addDoc();
+                e.preventDefault();
+                pressf = true;
+                restartClick();
+                call('press', { e, pos: XYe(e), button: e.button });
             }
         }
-        block.addEventListener("mouseenter", (e) => {
-            call('enter', { pos: XYe(e) });
-            add();
-        });
-        block.addEventListener("mouseleave", (e) => {
-            call('leave', { pos: XYe(e) });
-            if (!pressf) remove();
-        });
-        block.addEventListener("mousedown", (e) => {
-            if (!pressf) {
-                add();
-                e.preventDefault();
-                pressf = 1;
-                restartClick();
-                call('press', { pos: XYe(e) });
-            }
-        });
-        block.addEventListener("mousemove", (e) => {
-            if (!pressf) call('move', { move: { x: e.movementX, y: e.movementY }, pos: XYe(e) });
-        });
-        block.addEventListener("wheel", (e) => {
+        let mouseMoveBlock = (e) => {
+            if (!pressf) call('move', { e, move: { x: e.movementX, y: e.movementY }, pos: XYe(e) });
+        }
+        let mouseWheelBlock = (e) => {
             e.preventDefault();
-            call('zoom', { zoom: -e.deltaY / 100, pos: XYe(e) });
-        }, { passive: false });
+            call('zoom', { e, zoom: -e.deltaY / 100, pos: XYe(e) });
+        }
+        if (params.menu) on(block, contextmenu, onContextMenu);
+        on(block, mouseenter, mouseEnterBlock);
+        on(block, mouseleave, mouseLeaveBlock);
+        on(block, mousedown, mouseDownBlock);
+        on(block, mousemove, mouseMoveBlock);
+        on(block, wheel, mouseWheelBlock, passiveFalse);
+
+        //#region mouse events
+        let added = false;
+        let addDoc = () => {
+            if (added) return;
+            added = true;
+            onDoc(mousemove, mouseMoveDoc);
+            onDoc(mouseup, mouseUpDoc);
+        }
+        let remDoc = () => {
+            if (!added) return;
+            added = false;
+            offDoc(mousemove, mouseMoveDoc);
+            offDoc(mouseup, mouseUpDoc);
+        }
+        destroy = () => {
+            cancelClick();
+            remDoc();
+            if (params.menu) off(block, contextmenu, onContextMenu);
+            off(block, mouseenter, mouseEnterBlock);
+            off(block, mouseleave, mouseLeaveBlock);
+            off(block, mousedown, mouseDownBlock);
+            off(block, mousemove, mouseMoveBlock);
+            off(block, wheel, mouseWheelBlock, passiveFalse);
+        }
     }
+
+    return { destroy };
 }

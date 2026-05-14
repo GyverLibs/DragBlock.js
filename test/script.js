@@ -11,6 +11,9 @@ document.addEventListener("DOMContentLoaded", () => {
         let big = document.getElementById('big');
         let small = document.getElementById('small');
         switch (e.type) {
+            case 'menu':
+                confirm('menu');
+                break;
             case 'move':
                 break;
             case 'press':
@@ -38,5 +41,5 @@ document.addEventListener("DOMContentLoaded", () => {
         set(small, 'cx', e.pos.x);
         set(small, 'cy', e.pos.y);
         set(small, 'fill', e.pressed ? 'blue' : 'green');
-    });
+    }, { menu: true });
 });
