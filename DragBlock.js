@@ -1,5 +1,3 @@
-// type: [enter, leave, zoom, drag, tdrag, click, press, release, tpress, trelease, menu]
-// e: {e, type, block, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height, button}
 export default function DragBlock(block, cb, params = {}) {
     params = {
         context: window,
