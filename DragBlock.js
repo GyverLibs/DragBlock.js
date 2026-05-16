@@ -1,5 +1,5 @@
-// type: [enter, leave, zoom, drag, tdrag, click, press, release, tpress, trelease]
-// e: {type, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height, button, menu}
+// type: [enter, leave, zoom, drag, tdrag, click, press, release, tpress, trelease, menu]
+// e: {e, type, block, touch, move{x,y}, pos{x,y}, drag{x,y}, pressed, width, height, button}
 export default function DragBlock(block, cb, params = {}) {
     params = {
         context: window,
@@ -14,7 +14,7 @@ export default function DragBlock(block, cb, params = {}) {
     const touch = "ontouchstart" in params.context.document.documentElement;
     const passiveFalse = { passive: false };
     let xy0 = () => ({ x: 0, y: 0 });
-    let destroy = () => { };
+    let unsub = () => { };
     let tout = null;
     let menuTout = null;
     let tchs = [];
@@ -28,8 +28,8 @@ export default function DragBlock(block, cb, params = {}) {
     let onDoc = (type, fn, opts) => on(params.context.document, type, fn, opts);
     let offDoc = (type, fn, opts) => off(params.context.document, type, fn, opts);
 
-    let call = (t, o) => {
-        cb({ type: t, touch: touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), button: null, ...o })
+    let call = (type, o) => {
+        cb({ type, block, touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), button: null, ...o })
     }
     let XY = (x, y) => {
         const r = block.getBoundingClientRect();
@@ -63,11 +63,12 @@ export default function DragBlock(block, cb, params = {}) {
 
     //#region touch
     if (touch) {
-        block.style.userSelect = 'none';
-        block.style.touchAction = 'none';
-        block.style.webkitUserSelect = 'none';
-        block.style.overscrollBehavior = 'none';
-        block.style.webkitTouchCallout = 'none';
+        const none = 'none';
+        block.style.userSelect = none;
+        block.style.touchAction = none;
+        block.style.webkitUserSelect = none;
+        block.style.overscrollBehavior = none;
+        block.style.webkitTouchCallout = none;
 
         const touchend = 'touchend';
         const touchmove = 'touchmove';
@@ -90,7 +91,6 @@ export default function DragBlock(block, cb, params = {}) {
                 menuTout = null;
             }
         }
-
         let startMenu = (e, pos) => {
             if (!params.menu) return;
 
@@ -227,11 +227,11 @@ export default function DragBlock(block, cb, params = {}) {
             offDoc(touchend, touchEndDoc);
             offDoc(touchcancel, touchEndDoc);
         }
-        destroy = () => {
+        unsub = () => {
             tchs = [];
-            cancelClick();
-            cancelMenu();
             remDoc();
+            cancelMenu();
+            cancelClick();
             off(block, touchstart, touchStartBlock, passiveFalse);
         }
 
@@ -261,7 +261,7 @@ export default function DragBlock(block, cb, params = {}) {
                 e.preventDefault();
                 pressf = false;
                 call('release', { e, pos: XYe(e) });
-                if (checkClick()) call('click', { e, pos: XYe(e), button: e.button });
+                if (checkClick()) call('click', { e, pos: XYe(e), button });
                 if (e.target !== block) remDoc();
             }
             button = null;
@@ -287,7 +287,7 @@ export default function DragBlock(block, cb, params = {}) {
                 e.preventDefault();
                 pressf = true;
                 restartClick();
-                call('press', { e, pos: XYe(e), button: e.button });
+                call('press', { e, pos: XYe(e), button });
             }
         }
         let mouseMoveBlock = (e) => {
@@ -297,38 +297,39 @@ export default function DragBlock(block, cb, params = {}) {
             e.preventDefault();
             call('zoom', { e, zoom: -e.deltaY / 100, pos: XYe(e) });
         }
-        if (params.menu) on(block, contextmenu, onContextMenu);
-        on(block, mouseenter, mouseEnterBlock);
-        on(block, mouseleave, mouseLeaveBlock);
+
         on(block, mousedown, mouseDownBlock);
         on(block, mousemove, mouseMoveBlock);
+        on(block, mouseenter, mouseEnterBlock);
+        on(block, mouseleave, mouseLeaveBlock);
         on(block, wheel, mouseWheelBlock, passiveFalse);
+        if (params.menu) on(block, contextmenu, onContextMenu);
 
         //#region mouse events
         let added = false;
         let addDoc = () => {
             if (added) return;
             added = true;
-            onDoc(mousemove, mouseMoveDoc);
             onDoc(mouseup, mouseUpDoc);
+            onDoc(mousemove, mouseMoveDoc);
         }
         let remDoc = () => {
             if (!added) return;
             added = false;
-            offDoc(mousemove, mouseMoveDoc);
             offDoc(mouseup, mouseUpDoc);
+            offDoc(mousemove, mouseMoveDoc);
         }
-        destroy = () => {
-            cancelClick();
+        unsub = () => {
             remDoc();
-            if (params.menu) off(block, contextmenu, onContextMenu);
-            off(block, mouseenter, mouseEnterBlock);
-            off(block, mouseleave, mouseLeaveBlock);
+            cancelClick();
             off(block, mousedown, mouseDownBlock);
             off(block, mousemove, mouseMoveBlock);
+            off(block, mouseenter, mouseEnterBlock);
+            off(block, mouseleave, mouseLeaveBlock);
             off(block, wheel, mouseWheelBlock, passiveFalse);
+            if (params.menu) off(block, contextmenu, onContextMenu);
         }
     }
 
-    return { destroy };
+    return unsub;
 }
