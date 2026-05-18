@@ -2,6 +2,13 @@ import DragBlock from 'https://gyverlibs.github.io/DragBlock.js/DragBlock.min.js
 // import DragBlock from '../DragBlock.js'
 
 document.addEventListener("DOMContentLoaded", () => {
+    DragBlock(document.getElementById('b1'), e => {
+        e.el.textContent = e.type;
+    });
+    DragBlock(document.getElementById('b2'), e => {
+        e.el.textContent = e.type;
+    });
+
     DragBlock(document.getElementById('div'), e => {
         console.log(JSON.stringify(e));
 

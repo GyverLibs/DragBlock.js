@@ -1,6 +1,6 @@
 {
   "name": "@alexgyver/drag-block",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Click, drag and pitch events for element",
   "main": "./DragBlock.js",
   "module": "./DragBlock.js",

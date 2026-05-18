@@ -1,9 +1,8 @@
-export default function DragBlock(block, cb, params = {}) {
+export default function DragBlock(el, cb, params = {}) {
     params = {
         context: window,
         clickTout: 300,
         clickZone: 5,
-        menu: false,
         menuTout: 600,
         ...params
     };
@@ -27,10 +26,10 @@ export default function DragBlock(block, cb, params = {}) {
     let offDoc = (type, fn, opts) => off(params.context.document, type, fn, opts);
 
     let call = (type, o) => {
-        cb({ type, block, touch, width: block.clientWidth, height: block.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), button: null, ...o })
+        cb({ type, el, touch, width: el.clientWidth, height: el.clientHeight, move: xy0(), pos: xy0(), drag: { x: dxy.x, y: dxy.y }, pressed: (touch ? tchs.length >= 2 : pressf), button: null, ...o })
     }
     let XY = (x, y) => {
-        const r = block.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
         return { x: Math.round(x - r.left), y: Math.round(y - r.top - params.context.document.documentElement.scrollTop) };
     }
     let XYe = (e) => {
@@ -62,11 +61,11 @@ export default function DragBlock(block, cb, params = {}) {
     //#region touch
     if (touch) {
         const none = 'none';
-        block.style.userSelect = none;
-        block.style.touchAction = none;
-        block.style.webkitUserSelect = none;
-        block.style.overscrollBehavior = none;
-        block.style.webkitTouchCallout = none;
+        el.style.userSelect = none;
+        el.style.touchAction = none;
+        el.style.webkitUserSelect = none;
+        el.style.overscrollBehavior = none;
+        el.style.webkitTouchCallout = none;
 
         const touchend = 'touchend';
         const touchmove = 'touchmove';
@@ -90,7 +89,7 @@ export default function DragBlock(block, cb, params = {}) {
             }
         }
         let startMenu = (e, pos) => {
-            if (!params.menu) return;
+            // if (!params.menu) return;
 
             cancelMenu();
 
@@ -103,7 +102,7 @@ export default function DragBlock(block, cb, params = {}) {
 
         // doc
         let touchStartDoc = (e) => {
-            if (hover && e.target != block && !tchs.length) {
+            if (hover && e.target != el && !tchs.length) {
                 hover = false;
                 call('leave', { e });
                 remDoc();
@@ -180,7 +179,7 @@ export default function DragBlock(block, cb, params = {}) {
             }
         }
 
-        // block
+        // el
         let touchStartBlock = (e) => {
             e.preventDefault();
             let t = getTch(e, 0);
@@ -205,7 +204,7 @@ export default function DragBlock(block, cb, params = {}) {
                 cancelClick();
             };
         }
-        on(block, touchstart, touchStartBlock, passiveFalse);
+        on(el, touchstart, touchStartBlock, passiveFalse);
 
         //#region touch events
         let added = false;
@@ -230,7 +229,7 @@ export default function DragBlock(block, cb, params = {}) {
             remDoc();
             cancelMenu();
             cancelClick();
-            off(block, touchstart, touchStartBlock, passiveFalse);
+            off(el, touchstart, touchStartBlock, passiveFalse);
         }
 
         //#region mouse
@@ -260,12 +259,12 @@ export default function DragBlock(block, cb, params = {}) {
                 pressf = false;
                 call('release', { e, pos: XYe(e) });
                 if (checkClick()) call('click', { e, pos: XYe(e), button });
-                if (e.target !== block) remDoc();
+                if (e.target !== el) remDoc();
             }
             button = null;
         }
 
-        // block
+        // el
         let onContextMenu = e => {
             e.preventDefault();
             call('menu', { e, pos: XYe(e) });
@@ -296,12 +295,13 @@ export default function DragBlock(block, cb, params = {}) {
             call('zoom', { e, zoom: -e.deltaY / 100, pos: XYe(e) });
         }
 
-        on(block, mousedown, mouseDownBlock);
-        on(block, mousemove, mouseMoveBlock);
-        on(block, mouseenter, mouseEnterBlock);
-        on(block, mouseleave, mouseLeaveBlock);
-        on(block, wheel, mouseWheelBlock, passiveFalse);
-        if (params.menu) on(block, contextmenu, onContextMenu);
+        on(el, mousedown, mouseDownBlock);
+        on(el, mousemove, mouseMoveBlock);
+        on(el, mouseenter, mouseEnterBlock);
+        on(el, mouseleave, mouseLeaveBlock);
+        on(el, wheel, mouseWheelBlock, passiveFalse);
+        // if (params.menu)
+        on(el, contextmenu, onContextMenu);
 
         //#region mouse events
         let added = false;
@@ -320,12 +320,13 @@ export default function DragBlock(block, cb, params = {}) {
         unsub = () => {
             remDoc();
             cancelClick();
-            off(block, mousedown, mouseDownBlock);
-            off(block, mousemove, mouseMoveBlock);
-            off(block, mouseenter, mouseEnterBlock);
-            off(block, mouseleave, mouseLeaveBlock);
-            off(block, wheel, mouseWheelBlock, passiveFalse);
-            if (params.menu) off(block, contextmenu, onContextMenu);
+            off(el, mousedown, mouseDownBlock);
+            off(el, mousemove, mouseMoveBlock);
+            off(el, mouseenter, mouseEnterBlock);
+            off(el, mouseleave, mouseLeaveBlock);
+            off(el, wheel, mouseWheelBlock, passiveFalse);
+            // if (params.menu) 
+            off(el, contextmenu, onContextMenu);
         }
     }
 
